@@ -23,11 +23,11 @@ import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
 import android.webkit.WebView
 import android.widget.TextView
+import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.webkit.WebViewClientCompat
 import org.json.JSONObject
-import org.readium.r2.navigator.R
-import org.readium.r2.navigator.R2EpubActivity
+import org.readium.r2.navigator.*
 import org.readium.r2.shared.APPEARANCE_REF
 import org.readium.r2.shared.Locations
 import org.readium.r2.shared.PageProgressionDirection
@@ -35,6 +35,8 @@ import org.readium.r2.shared.SCROLL_REF
 
 
 class R2EpubPageFragment : Fragment() {
+
+
 
     private val resourceUrl: String?
         get() = arguments!!.getString("url")
@@ -140,6 +142,9 @@ class R2EpubPageFragment : Fragment() {
             }
 
             override fun onPageFinished(view: WebView?, url: String?) {
+
+                println("                       DEBUG_INFORMATIONS: "+ "page loaded")
+                //pageFullyLoaded = true;
                 super.onPageFinished(view, url)
 
                 val currentFragment:R2EpubPageFragment = (webView.activity.resourcePager.adapter as R2PagerAdapter).getCurrentFragment() as R2EpubPageFragment
@@ -175,6 +180,11 @@ class R2EpubPageFragment : Fragment() {
                             }
                         }
                     }
+
+                    if(keywordGlobal != "") {
+                        webView.searchKeywordInCurrentResource(resourceGlobal, keywordGlobal, focusPosition)
+                    }
+
                 }
 
                 nextFragment?.let {
@@ -251,7 +261,6 @@ class R2EpubPageFragment : Fragment() {
             return fragment
         }
     }
-
 }
 
 

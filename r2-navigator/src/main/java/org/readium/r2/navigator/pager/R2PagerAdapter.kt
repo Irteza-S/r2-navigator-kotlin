@@ -65,4 +65,5 @@ class R2PagerAdapter(fm: FragmentManager, private val resources: List<Any>, priv
         return resources.size
     }
 
+
 }

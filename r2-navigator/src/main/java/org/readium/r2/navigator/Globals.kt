@@ -13,11 +13,18 @@ import android.content.Context
 import androidx.annotation.ColorInt
 import androidx.annotation.ColorRes
 import androidx.core.content.ContextCompat
+import org.readium.r2.shared.Publication
 
 /**
  * Created by aferditamuriqi on 10/3/17.
  */
 
+
+var keywordGlobal = ""
+var focusPosition = 0
+var resourceGlobal = ""
+var currentActivity : R2EpubActivity? = null
+var globalPublication : Publication? = null
 
 /**
  * Global Parameters

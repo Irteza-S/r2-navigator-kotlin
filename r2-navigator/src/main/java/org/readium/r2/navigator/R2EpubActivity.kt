@@ -14,6 +14,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import android.os.Bundle
+import android.util.Log
 import android.view.View
 import androidx.appcompat.app.AppCompatActivity
 import androidx.viewpager.widget.ViewPager
@@ -28,6 +29,9 @@ import org.readium.r2.navigator.pager.R2ViewPager
 import org.readium.r2.shared.*
 import java.net.URI
 import kotlin.coroutines.CoroutineContext
+import android.webkit.WebView
+import org.json.JSONArray
+import org.json.JSONObject
 
 
 open class R2EpubActivity : AppCompatActivity(), PageCallback, CoroutineScope {
@@ -51,6 +55,8 @@ open class R2EpubActivity : AppCompatActivity(), PageCallback, CoroutineScope {
     var allowToggleActionBar = true
 
     var pagerPosition = 0
+
+    var keyword: String =""
 
     private var currentPagerPosition: Int = 0
     lateinit var adapter:R2PagerAdapter
@@ -177,9 +183,14 @@ open class R2EpubActivity : AppCompatActivity(), PageCallback, CoroutineScope {
                     if (currentPagerPosition < position) {
                         // handle swipe LEFT
                         currentFragment?.webView?.setCurrentItem(0, false)
+
+                        println("                       DEBUG_INFORMATIONS: "+currentPagerPosition)
                     } else if (currentPagerPosition > position) {
                         // handle swipe RIGHT
                         currentFragment?.webView?.setCurrentItem(currentFragment.webView.numPages - 1, false)
+
+
+                        println("                       DEBUG_INFORMATIONSN: "+currentPagerPosition)
                     }
                 }
                 storeDocumentIndex()
@@ -189,7 +200,7 @@ open class R2EpubActivity : AppCompatActivity(), PageCallback, CoroutineScope {
         })
 
         storeDocumentIndex()
-
+        globalPublication = publication
     }
 
     /**
@@ -208,7 +219,6 @@ open class R2EpubActivity : AppCompatActivity(), PageCallback, CoroutineScope {
         val documentIndex = resourcePager.currentItem
         preferences.edit().putInt("$publicationIdentifier-document", documentIndex).apply()
     }
-
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         if (requestCode == 2 && resultCode == Activity.RESULT_OK) {
@@ -295,14 +305,19 @@ open class R2EpubActivity : AppCompatActivity(), PageCallback, CoroutineScope {
                 }
             }
         }
+        //val locator = data?.getSerializableExtra("locator") as Locator
         super.onActivityResult(requestCode, resultCode, data)
+
     }
 
 
     fun nextResource(smoothScroll: Boolean) {
+        toggleActionBar()
         launch {
             pagerPosition = 0
             if (resourcePager.currentItem < resourcePager.adapter!!.count - 1 ) {
+
+
 
                 resourcePager.setCurrentItem(resourcePager.currentItem + 1, smoothScroll)
 
@@ -381,5 +396,58 @@ open class R2EpubActivity : AppCompatActivity(), PageCallback, CoroutineScope {
         //optional
     }
 
+    fun searchKeyword(keyword: String, document: String, resourceId: String) {
+        val currentFragent = ((resourcePager.adapter as R2PagerAdapter).mFragments.get((resourcePager.adapter as R2PagerAdapter).getItemId(resourcePager.currentItem))) as? R2EpubPageFragment
+        if(currentFragent != null) {
+            keywordGlobal = keyword
+            currentFragent.webView.searchKeyword(keyword, document, resourceId)
+            //currentFragent.webView.searchKeywordInCurrentResource(keyword)
+
+        }
+
+
+    }
+
+    fun previousWord() {
+        val currentFragent = ((resourcePager.adapter as R2PagerAdapter).mFragments.get((resourcePager.adapter as R2PagerAdapter).getItemId(resourcePager.currentItem))) as? R2EpubPageFragment
+        if(currentFragent != null) {
+            currentFragent.webView.previousWord()
+        }
+    }
+
+    fun nextWord() {
+        val currentFragent = ((resourcePager.adapter as R2PagerAdapter).mFragments.get((resourcePager.adapter as R2PagerAdapter).getItemId(resourcePager.currentItem))) as? R2EpubPageFragment
+        if(currentFragent != null) {
+            currentFragent.webView.nextWord()
+        }
+    }
+
+    fun cancel() {
+        val currentFragent = ((resourcePager.adapter as R2PagerAdapter).mFragments.get((resourcePager.adapter as R2PagerAdapter).getItemId(resourcePager.currentItem))) as? R2EpubPageFragment
+        if(currentFragent != null) {
+            currentFragent.webView.cancel()
+        }
+    }
+
+    fun getResults() : String {
+        val currentFragent = ((resourcePager.adapter as R2PagerAdapter).mFragments.get((resourcePager.adapter as R2PagerAdapter).getItemId(resourcePager.currentItem))) as? R2EpubPageFragment
+        if(currentFragent != null) {
+            return currentFragent.webView.resultsList
+        }
+        return ""
+    }
+
+    companion object {
+        var keyword = ""
+    }
+
+    fun openResource(resourceId : String) {
+        val intent = Intent()
+        val resourceType = ""
+        var publication = globalPublication
+        intent.putExtra("locator", Locator(resourceId, resourceType, publication?.metadata?.title, Locations(progression = 0.0),null))
+        setResult(Activity.RESULT_OK, intent)
+        finish()
+    }
 }
 

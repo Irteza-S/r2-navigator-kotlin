@@ -17,8 +17,10 @@ import android.view.ViewGroup
 import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
 import android.webkit.WebView
+import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.webkit.WebViewClientCompat
+import kotlinx.android.synthetic.main.fragment_page_epub.*
 import org.readium.r2.navigator.R
 import org.readium.r2.navigator.R2EpubActivity
 import org.readium.r2.navigator.fxl.R2FXLLayout
@@ -145,6 +147,10 @@ class R2FXLPageFragment : Fragment() {
             fragment.arguments = args
             return fragment
         }
+    }
+
+    fun getR2BasicWebView() : R2BasicWebView{
+        return webView
     }
 
 }

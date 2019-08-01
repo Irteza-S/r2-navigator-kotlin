@@ -13,17 +13,19 @@ import android.content.Context
 import android.os.Build
 import android.text.Html
 import android.util.AttributeSet
+import android.util.Log
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
+import android.webkit.WebChromeClient
 import android.webkit.WebView
+import android.webkit.WebViewClient
 import android.widget.ImageButton
 import android.widget.ListPopupWindow
 import android.widget.PopupWindow
 import android.widget.TextView
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
+import org.json.JSONObject
 import org.jsoup.Jsoup
 import org.jsoup.safety.Whitelist
 import org.readium.r2.navigator.BuildConfig
@@ -32,6 +34,7 @@ import org.readium.r2.navigator.R2EpubActivity
 import org.readium.r2.shared.Locations
 import org.readium.r2.shared.SCROLL_REF
 import org.readium.r2.shared.getAbsolute
+import java.util.concurrent.CountDownLatch
 
 
 /**
@@ -72,6 +75,8 @@ open class R2BasicWebView(context: Context, attrs: AttributeSet) : WebView(conte
     @android.webkit.JavascriptInterface
     open fun scrollRight() {
         uiScope.launch {
+
+            println("                       DEBUG_INFORMATIONS: "+ "Next Page Asked")
             if (activity.supportActionBar!!.isShowing && activity.allowToggleActionBar) {
                 activity.resourcePager.systemUiVisibility = (View.SYSTEM_UI_FLAG_LAYOUT_STABLE
                         or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
@@ -98,10 +103,13 @@ open class R2BasicWebView(context: Context, attrs: AttributeSet) : WebView(conte
                 this@R2BasicWebView.evaluateJavascript("scrollRight();", null)
             }
         }
+
     }
 
     @android.webkit.JavascriptInterface
     open fun scrollLeft() {
+
+        println("                       DEBUG_INFORMATIONS: "+ "Previous Page Asked")
         uiScope.launch {
             if (activity.supportActionBar!!.isShowing && activity.allowToggleActionBar) {
                 activity.resourcePager.systemUiVisibility = (View.SYSTEM_UI_FLAG_LAYOUT_STABLE
@@ -225,4 +233,60 @@ open class R2BasicWebView(context: Context, attrs: AttributeSet) : WebView(conte
     fun removeProperty(key: String) {
         this.evaluateJavascript("removeProperty(\"$key\");", null)
     }
+
+    fun getHTML() : String {
+        //val latch = CountDownLatch(1)
+        var result = ""
+        this.evaluateJavascript("getHTML();") { value ->
+                result = value
+            Log.d("TEST : 1", result)
+                //latch.countDown()
+        }
+
+        //latch.await()
+        return result
+    }
+
+
+    fun tmp(): String {
+        var sum: String = ""
+        runBlocking {
+            val jobA = async { getHTML() }
+            runBlocking{
+                sum = jobA.await()
+            }
+        }
+        return sum
+    }
+
+    fun searchKeyword(keyword: String, document: String, resourceId: String) {
+        //var jsonObject = JSONObject(document)
+
+        //Replaceing double quotes
+        var tmp = document.replace("\"", "\\%")
+        //Replacing single quotes
+        tmp = tmp.replace("\'", "\\$")
+
+        this.evaluateJavascript("performMark('$keyword', '$tmp', '$resourceId')", null)
+        Log.d("Search : ", "Search function performed")
+    }
+
+    fun searchKeywordInCurrentResource(resource: String, keyword: String, focusPosition: Int) {
+        this.evaluateJavascript("performMarkInCurrentResource('$resource','$keyword', $focusPosition)", null)
+    }
+
+    fun previousWord() {
+        this.evaluateJavascript("moveToPreviousWord()", null)
+    }
+    fun nextWord() {
+        this.evaluateJavascript("moveToNextWord()", null)
+    }
+
+    fun cancel() {
+        this.evaluateJavascript("cancel()", null)
+    }
+
+
+
+
 }

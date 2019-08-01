@@ -12,6 +12,7 @@ package org.readium.r2.navigator.pager
 import android.content.Context
 import android.graphics.Rect
 import android.util.AttributeSet
+import android.util.Log
 import android.view.*
 import android.view.animation.Interpolator
 import android.widget.EdgeEffect
@@ -19,10 +20,16 @@ import android.widget.Scroller
 import androidx.annotation.CallSuper
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import kotlinx.android.synthetic.main.fragment_page_epub.view.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import timber.log.Timber
+import android.widget.Toast
+import org.json.JSONArray
+import org.json.JSONObject
+import org.readium.r2.navigator.currentActivity
+import org.readium.r2.navigator.resourceGlobal
 
 
 /**
@@ -31,8 +38,11 @@ import timber.log.Timber
 
 class R2WebView(context: Context, attrs: AttributeSet) : R2BasicWebView(context, attrs) {
 
+    var resultsList : String = ""
     init {
         initWebPager()
+        this.settings.setJavaScriptEnabled(true)
+        this.addJavascriptInterface(MyJavascriptInterface(context), "MyJSClient")
     }
 
     private val uiScope = CoroutineScope(Dispatchers.Main)
@@ -66,7 +76,6 @@ class R2WebView(context: Context, attrs: AttributeSet) : R2BasicWebView(context,
     private val MAX_SETTLE_DURATION = 600 // ms
     private val MIN_DISTANCE_FOR_FLING = 25 // dips
     private val MIN_FLING_VELOCITY = 400 // dips
-
 
     internal fun getContentWidth(): Int {
         return this.computeHorizontalScrollRange()//working after load of page
@@ -502,6 +511,7 @@ class R2WebView(context: Context, attrs: AttributeSet) : R2BasicWebView(context,
     }
 
     override fun computeScroll() {
+
         mIsScrollStarted = true
         if (!mScroller!!.isFinished && mScroller!!.computeScrollOffset()) {
             val oldX = scrollX
@@ -527,6 +537,7 @@ class R2WebView(context: Context, attrs: AttributeSet) : R2BasicWebView(context,
     }
 
     private fun pageScrolled(xpos: Int): Boolean {
+
         val ii = infoForCurrentScrollPosition()
         val width = getClientWidth()
         val widthWithMargin = width + mPageMargin
@@ -558,6 +569,9 @@ class R2WebView(context: Context, attrs: AttributeSet) : R2BasicWebView(context,
      */
     @CallSuper
     private fun onPageScrolled(position: Int, offset: Float, offsetPixels: Int) {
+
+        println("                       DEBUG_INFORMATIONS: "+ "Page scrolled")
+
         // Offset any decor views if needed - keep them on-screen at all times.
         if (mDecorChildCount > 0) {
             val scrollX = scrollX
@@ -629,6 +643,7 @@ class R2WebView(context: Context, attrs: AttributeSet) : R2BasicWebView(context,
 
     override fun onTouchEvent(ev: MotionEvent): Boolean {
 
+
         if (mVelocityTracker == null) {
             mVelocityTracker = VelocityTracker.obtain()
         }
@@ -656,6 +671,7 @@ class R2WebView(context: Context, attrs: AttributeSet) : R2BasicWebView(context,
                 }
 
                 if (!mIsBeingDragged) {
+
                     val pointerIndex = ev.findPointerIndex(mActivePointerId)
                     val x = ev.getX(pointerIndex)
                     val xDiff = Math.abs(x - mLastMotionX)
@@ -1011,6 +1027,62 @@ class R2WebView(context: Context, attrs: AttributeSet) : R2BasicWebView(context,
             val a = context.obtainStyledAttributes(attrs, LAYOUT_ATTRS)
             gravity = a.getInteger(0, Gravity.TOP)
             a.recycle()
+        }
+    }
+
+    inner class MyJavascriptInterface(internal var context: Context) {
+        @android.webkit.JavascriptInterface
+        fun getStringFromJS(txtVal: String) {
+            Toast.makeText(context, "Value From JS : $txtVal", Toast.LENGTH_LONG).show()
+            Log.d("JS DEBUG : ", txtVal)
+        }
+
+        @android.webkit.JavascriptInterface
+        fun goToNextResource(currentResource: String) {
+            currentActivity?.openResource(currentResource)
+        }
+
+        /*
+        @android.webkit.JavascriptInterface
+        fun getResults(resourceId: String) {
+            print(resourceId)
+        }*/
+
+        @android.webkit.JavascriptInterface
+        fun getResults(res: String) {
+            var json = JSONObject(res)
+            var resJSON = json.get("resultsList") as JSONArray
+            var resourceId = json.get("resourceId") as String
+            var exist = false
+            var index = 0
+            if(resultsList != "") {
+                var jsonOBJ = JSONArray(resultsList)
+
+                for (i in 0..(jsonOBJ.length() - 1)) {
+                    var obj = jsonOBJ[i] as JSONObject
+                    if(obj.has(resourceId)) {
+                        exist = true
+                        index = i
+                    }
+                }
+                for(i in 0..jsonOBJ.length()) {
+
+                }
+
+                if(exist) {
+                    for (i in 0 until resJSON.length()){
+                        (jsonOBJ[index] as JSONObject).getJSONArray("resultsList").put(resJSON.get(i))
+                    }
+                } else {
+                    jsonOBJ.put(json)
+                }
+                resultsList = jsonOBJ.toString()
+            }
+            else {
+                var tmp = JSONArray()
+                tmp.put(json)
+                resultsList = tmp.toString()
+            }
         }
     }
 }
